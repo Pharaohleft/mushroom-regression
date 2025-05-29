@@ -1,6 +1,6 @@
 ---
-title: "Project MAS 646"
-author: "Austin abraham"
+title: "Poison or NOT"
+author: "Astin Abraam"
 date: '2025-04-07'
 output: html_document
 ---
@@ -225,16 +225,17 @@ auc(roc_curve)
 ```
 
 ```{r}
-#VIF
-library(faraway)
-vif(model)
 
 ```
+
+
+`
+```
+
 
 ```{r}
 #stepwise selection
 step_model <- step(model, direction = "both")
-summary(step_model)
 
 ```
 
