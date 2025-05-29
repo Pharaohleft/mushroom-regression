@@ -1,0 +1,272 @@
+---
+title: "Project MAS 646"
+author: "Rushil Banerjee"
+date: '2025-04-07'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+d <- read.csv("mushroom.csv",header=TRUE) 
+
+```
+
+
+```{r}
+#view structure
+str(d)
+```
+
+```{r}
+#view first few rows
+head(d)
+```
+
+```{r}
+#check for NA values
+colSums(is.na(d))
+
+# Check for unknown values represented as "?"
+sapply(d, function(x) sum(x == "?"))
+```
+
+```{r}
+summary(d[, sapply(d, is.numeric)])
+```
+
+
+
+
+```{r}
+# Check which columns are numeric
+sapply(d, is.numeric)
+
+```
+
+```{r}
+## Convert all character columns to factors
+d[sapply(d, is.character)] <- lapply(d[sapply(d, is.character)], factor)
+
+```
+
+
+```{r}
+# Check structure and summary after conversion
+str(d)
+summary(d)
+
+
+```
+
+
+```{r}
+# Show variables with blank levels ("")
+blank_levels <- sapply(d, function(x) any(levels(x)[levels(x) == ""]))
+
+# Display names of affected variables
+names(blank_levels[blank_levels])
+
+```
+
+
+```{r}
+# Replace blank strings "" with NA in factor columns
+d[] <- lapply(d, function(x) {
+  if (is.character(x) || is.factor(x)) {
+    x <- as.character(x)
+    x[x == ""] <- NA
+    return(as.factor(x))
+  } else {
+    return(x)
+  }
+})
+
+```
+
+
+```{r}
+# Count number of missing (now NA) values
+colSums(is.na(d))
+
+```
+
+
+```{r}
+# Drop columns with more than 80% missing values
+threshold <- 0.8 * nrow(d)
+d <- d[, colSums(is.na(d)) <= threshold]
+
+```
+
+
+```{r}
+# Impute with most common level
+mode_cap_surface <- names(sort(table(d$cap.surface), decreasing = TRUE))[1]
+d$cap.surface[is.na(d$cap.surface)] <- mode_cap_surface
+
+```
+
+
+```{r}
+colSums(is.na(d))
+```
+
+
+```{r}
+# Example: Impute gill.attachment
+mode_attach <- names(which.max(table(d$gill.attachment)))
+d$gill.attachment[is.na(d$gill.attachment)] <- mode_attach
+
+# Example: Impute gill.spacing
+mode_spacing <- names(which.max(table(d$gill.spacing)))
+d$gill.spacing[is.na(d$gill.spacing)] <- mode_spacing
+
+# Example: Impute stem.surface
+mode_surface <- names(which.max(table(d$stem.surface)))
+d$stem.surface[is.na(d$stem.surface)] <- mode_surface
+
+# Example: Impute ring.type
+mode_ring <- names(which.max(table(d$ring.type)))
+d$ring.type[is.na(d$ring.type)] <- mode_ring
+
+```
+
+
+```{r}
+colSums(is.na(d))
+
+```
+
+
+```{r}
+# Frequency tables for selected categorical variables
+table(d$class)          # Edibility (Target)
+table(d$cap.shape)
+table(d$gill.color)
+table(d$habitat)
+table(d$season)
+
+as.data.frame(table(d$cap.shape))
+
+```
+
+
+```{r}
+par(mfrow = c(2, 2))
+
+hist(d$cap.diameter, main = "Cap Diameter", xlab = "cm", col = "skyblue", border = "white")
+hist(d$stem.height, main = "Stem Height", xlab = "cm", col = "skyblue", border = "white")
+hist(d$stem.width, main = "Stem Width", xlab = "mm", col = "skyblue", border = "white")
+
+par(mfrow = c(1, 1))  # Reset layout
+
+```
+
+
+```{r}
+par(mfrow = c(2, 2))
+
+qqnorm(d$cap.diameter, main = "QQ Plot: Cap Diameter")
+qqline(d$cap.diameter)
+
+qqnorm(d$stem.height, main = "QQ Plot: Stem Height")
+qqline(d$stem.height)
+
+qqnorm(d$stem.width, main = "QQ Plot: Stem Width")
+qqline(d$stem.width)
+
+par(mfrow = c(1, 1))
+
+```
+
+```{r}
+par(mfrow = c(2, 2))
+
+boxplot(cap.diameter ~ class, data = d, main = "Cap Diameter by Class", xlab = "Class", ylab = "Diameter")
+boxplot(stem.height ~ class, data = d, main = "Stem Height by Class", xlab = "Class", ylab = "Height")
+boxplot(stem.width ~ class, data = d, main = "Stem Width by Class", xlab = "Class", ylab = "Width")
+
+par(mfrow = c(1, 1))
+
+```
+
+```{r}
+# Fit logistic regression
+model <- glm(class ~ ., family = "binomial", data = d)
+summary(model)
+
+```
+
+```{r}
+d$prob <- predict(model, newdata = d, type = "response")
+d <- d[order(-d$prob), ]
+head(d[, c("class", "prob")], 10)
+
+```
+
+```{r}
+library(caret)
+
+pred_class <- as.factor(ifelse(d$prob > 0.5, "p", "e"))
+confusionMatrix(pred_class, d$class)
+
+```
+
+```{r}
+library(pROC)
+
+roc_curve <- roc(d$class ~ d$prob)
+plot(roc_curve, col = "blue", main = "ROC Curve")
+auc(roc_curve)
+
+```
+
+```{r}
+#VIF
+library(faraway)
+vif(model)
+
+```
+
+```{r}
+#stepwise selection
+step_model <- step(model, direction = "both")
+summary(step_model)
+
+```
+
+```{r}
+summary(step_model)
+
+```
+
+```{r}
+d$prob_step <- predict(step_model, type = "response")
+pred_class_step <- as.factor(ifelse(d$prob_step > 0.5, "p", "e"))
+
+library(caret)
+confusionMatrix(pred_class_step, d$class)
+
+library(pROC)
+roc_step <- roc(d$class ~ d$prob_step)
+plot(roc_step, col = "darkgreen", main = "ROC Curve - Stepwise Model")
+auc(roc_step)
+
+```
+
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
