@@ -5,7 +5,7 @@ Logistic regression project to predict mushroom toxicity using visual traits
 This project predicts whether a mushroom is edible or poisonous using logistic regression in R. It includes data cleaning, visualization, model building, and performance evaluation.
 
 ## Files
-- `mushroom.csv`: UCI mushroom dataset
+- `mushroom.csv`: UCI mushroom dataset from kaggle
 - `mushroom_regression.Rmd`: R Markdown with full analysis
 
 ## Tools Used
